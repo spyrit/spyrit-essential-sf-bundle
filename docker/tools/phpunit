@@ -1,0 +1,4 @@
+#!/bin/bash
+
+arg=$*
+docker compose exec php bash -c "vendor/bin/phpunit $arg"

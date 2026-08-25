@@ -1,0 +1,32 @@
+clone:
+  depth: 2
+
+definitions:
+  steps:
+    - step: &quality
+        runs-on: self.hosted
+        caches:
+          - composer
+        script:
+          - COMPOSER_ALLOW_SUPERUSER=1 composer install -n --no-progress
+          - vendor/bin/php-cs-fixer fix --dry-run --diff
+          - vendor/bin/phpstan analyse --no-progress
+          - vendor/bin/phpunit --colors=always
+
+pipelines:
+  default:
+    - parallel:
+        - step:
+            <<: *quality
+            name: "Tests - PHP 8.1 / Symfony 5.4"
+            image: supportspyrit/bitbucket_pipelines_spyrit:php81
+            script:
+              - export SYMFONY_REQUIRE=5.4.*
+              - COMPOSER_ALLOW_SUPERUSER=1 composer require symfony/flex --no-update
+              - COMPOSER_ALLOW_SUPERUSER=1 composer install -n --no-progress
+              - vendor/bin/simple-phpunit install
+              - vendor/bin/simple-phpunit
+        - step:
+            <<: *quality
+            name: "Tests - PHP 8.3 / Symfony 6.4 (LTS)"
+            image: supportspyrit/bitbucket_pipelines_spyrit:php83
