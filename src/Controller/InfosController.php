@@ -21,6 +21,7 @@ final class InfosController
     public function __invoke(
         Request $request,
         #[Autowire(env: 'SPYRIT_ESSENTIAL_TOKEN')] string $expectedToken,
+        #[Autowire('%kernel.project_dir%')] string $projectDir,
         ?Connection $connection = null,
     ): JsonResponse {
         $providedToken = $request->query->get('token');
@@ -34,7 +35,8 @@ final class InfosController
             'symfony' => Kernel::VERSION,
             'node' => $this->getNodeVersion(),
             'database' => $this->getDatabaseVersion($connection),
-            'libraries' => $this->getInstalledLibraries(),
+            'libraries-php' => $this->getInstalledPhpLibraries(),
+            'libraries-node' => $this->getInstalledNodeLibraries($projectDir),
         ]);
     }
 
@@ -76,7 +78,7 @@ final class InfosController
     /**
      * @return array<string, string|null>
      */
-    private function getInstalledLibraries(): array
+    private function getInstalledPhpLibraries(): array
     {
         $libraries = [];
 
@@ -87,5 +89,70 @@ final class InfosController
         ksort($libraries);
 
         return $libraries;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getInstalledNodeLibraries(string $projectDir): array
+    {
+        $nodeModulesDir = $projectDir.'/node_modules';
+
+        if (!is_dir($nodeModulesDir)) {
+            return [];
+        }
+
+        $libraries = [];
+
+        foreach ($this->findPackageJsonFiles($nodeModulesDir) as $packageJsonPath) {
+            $data = json_decode((string) file_get_contents($packageJsonPath), true);
+
+            if (!\is_array($data) || !\is_string($data['name'] ?? null) || !\is_string($data['version'] ?? null)) {
+                continue;
+            }
+
+            $libraries[$data['name']] = $data['version'];
+        }
+
+        ksort($libraries);
+
+        return $libraries;
+    }
+
+    /**
+     * @return iterable<string>
+     */
+    private function findPackageJsonFiles(string $nodeModulesDir): iterable
+    {
+        foreach (scandir($nodeModulesDir) ?: [] as $entry) {
+            if ('.' === $entry || '..' === $entry) {
+                continue;
+            }
+
+            $entryPath = $nodeModulesDir.'/'.$entry;
+
+            // Paquets scopés (@org/pkg) : un niveau de dossier supplémentaire.
+            if (str_starts_with($entry, '@') && is_dir($entryPath)) {
+                foreach (scandir($entryPath) ?: [] as $scopedEntry) {
+                    if ('.' === $scopedEntry || '..' === $scopedEntry) {
+                        continue;
+                    }
+
+                    $packageJsonPath = $entryPath.'/'.$scopedEntry.'/package.json';
+
+                    if (is_file($packageJsonPath)) {
+                        yield $packageJsonPath;
+                    }
+                }
+
+                continue;
+            }
+
+            $packageJsonPath = $entryPath.'/package.json';
+
+            if (is_file($packageJsonPath)) {
+                yield $packageJsonPath;
+            }
+        }
     }
 }
