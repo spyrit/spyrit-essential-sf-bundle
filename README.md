@@ -28,9 +28,13 @@ puis `composer require spyrit/spyrit-essential-bundle:@dev`.
 
 ## Route d'infos runtime (`/spyrit-essential`)
 
-Expose en JSON les versions live PHP, Symfony, Node (si le binaire est accessible depuis le process qui sert la requête,
-sinon `null`), base de données (MySQL/MariaDB/PostgreSQL, via Doctrine DBAL si présent, sinon `null`) et la liste de
-tous les packages Composer installés.
+Expose en JSON :
+- `php` : version live du runtime PHP.
+- `symfony` : version de Symfony.
+- `node` : version live du binaire `node` s'il est accessible depuis le process qui sert la requête, sinon `null`.
+- `database` : version live de la base connectée (MySQL/MariaDB/PostgreSQL, via Doctrine DBAL si présent), sinon `null`.
+- `libraries-php` : tous les packages Composer installés (via `Composer\InstalledVersions`).
+- `libraries-node` : tous les packages Node installés, lus depuis `node_modules/<pkg>/package.json` (pas d'exec npm/yarn/pnpm).
 
 Protégée par un token statique, comparé en temps constant (`hash_equals`) : la route renvoie **401** si le token attendu
 est vide/absent, si aucun token n'est fourni, ou si les deux ne correspondent pas exactement.
