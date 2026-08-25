@@ -1,4 +1,11 @@
+parameters:
+  # Défaut si SPYRIT_ESSENTIAL_TOKEN n'est pas défini dans l'app consommatrice :
+  # la route /spyrit-essential renvoie alors toujours 401 (jamais de "vide == vide").
+  env(SPYRIT_ESSENTIAL_TOKEN): ''
+
 services:
   _defaults:
     autowire: true
     autoconfigure: true
+
+  Spyrit\EssentialBundle\Controller\InfosController: ~

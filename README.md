@@ -25,3 +25,39 @@ Dans le `composer.json` de l'application consommatrice :
 ```
 
 puis `composer require spyrit/spyrit-essential-bundle:@dev`.
+
+## Route d'infos runtime (`/spyrit-essential`)
+
+Expose en JSON les versions live PHP, Symfony, Node (si le binaire est accessible depuis le process qui sert la requête,
+sinon `null`), base de données (MySQL/MariaDB/PostgreSQL, via Doctrine DBAL si présent, sinon `null`) et la liste de
+tous les packages Composer installés.
+
+Protégée par un token statique, comparé en temps constant (`hash_equals`) : la route renvoie **401** si le token attendu
+est vide/absent, si aucun token n'est fourni, ou si les deux ne correspondent pas exactement.
+
+**Installation dans l'application consommatrice :**
+
+1. Ajouter l'import de route dans `config/routes.yaml` :
+   ```yaml
+   spyrit_essential:
+       resource: '@SpyritEssentialBundle/config/routes.php'
+   ```
+2. Définir le token dans `.env` (valeur vide, documentaire) puis dans `.env.local` (valeur réelle, jamais committée) :
+   ```
+   SPYRIT_ESSENTIAL_TOKEN=
+   ```
+3. Si l'application a un firewall Symfony qui protège tout par défaut, autoriser explicitement la route en accès public
+   (l'autorisation réelle est gérée par le token, pas par le firewall) :
+   ```yaml
+   access_control:
+       - { path: ^/spyrit-essential, roles: PUBLIC_ACCESS }
+   ```
+
+**Appel :**
+```
+GET /spyrit-essential?token=xxx
+```
+
+⚠️ **Avertissement sécurité** : cette route expose des numéros de version exacts (PHP, Symfony, libs, BDD), utile pour
+du diagnostic mais aussi pour un attaquant qui chercherait des CVE connues sur ces versions précises si le token venait
+à fuiter. À ne pas exposer publiquement sans restriction complémentaire (IP allowlist, WAF) en production.

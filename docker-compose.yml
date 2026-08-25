@@ -9,3 +9,4 @@ services:
       - ./docker/.composer:/var/www/.composer:rw,cached
     environment:
       COMPOSER_HOME: /var/www/.composer
+    command: tail -f /dev/null
