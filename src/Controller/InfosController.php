@@ -76,14 +76,20 @@ final class InfosController
     }
 
     /**
-     * @return array<string, string|null>
+     * @return array<string, string>
      */
     private function getInstalledPhpLibraries(): array
     {
         $libraries = [];
 
         foreach (InstalledVersions::getInstalledPackages() as $package) {
-            $libraries[$package] = InstalledVersions::getPrettyVersion($package);
+            // Les packages "virtuels" (provide/replace, ex. symfony/cache-implementation)
+            // n'ont pas de version propre : getPrettyVersion() renvoie null, on les exclut.
+            $version = InstalledVersions::getPrettyVersion($package);
+
+            if (null !== $version) {
+                $libraries[$package] = $version;
+            }
         }
 
         ksort($libraries);
