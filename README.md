@@ -24,7 +24,7 @@ Dans le `composer.json` de l'application consommatrice :
 ]
 ```
 
-puis `composer require spyrit/spyrit-essential-bundle:@dev`.
+puis `composer require spyrit/spyrit-essential-sf-bundle:@dev`.
 
 ## Route d'infos runtime (`/spyrit-essential`)
 

@@ -1,5 +1,5 @@
 {
-    "name": "spyrit/spyrit-essential-bundle",
+    "name": "spyrit/spyrit-essential-sf-bundle",
     "description": "Bundle Symfony transverse SPYRIT (utilitaires communs aux applications internes)",
     "type": "symfony-bundle",
     "license": "proprietary",
