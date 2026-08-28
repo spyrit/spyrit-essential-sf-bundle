@@ -8,4 +8,5 @@ services:
     autowire: true
     autoconfigure: true
 
-  Spyrit\EssentialBundle\Controller\InfosController: ~
+  Spyrit\EssentialBundle\Controller\InfosController:
+    tags: ['controller.service_arguments']

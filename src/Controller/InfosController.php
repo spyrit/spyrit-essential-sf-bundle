@@ -10,23 +10,28 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Routing\Attribute\Route;
 
+#[AsController]
 #[Route('/spyrit-essential', name: 'spyrit_essential_infos', methods: [Request::METHOD_GET])]
 final class InfosController
 {
-    public function __invoke(
-        Request $request,
-        #[Autowire(env: 'SPYRIT_ESSENTIAL_TOKEN')] string $expectedToken,
-        #[Autowire('%kernel.project_dir%')] string $projectDir,
-        ?Connection $connection = null,
-    ): JsonResponse {
+    public function __construct(
+        #[Autowire(env: 'SPYRIT_ESSENTIAL_TOKEN')] private readonly string $expectedToken,
+        #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
+        private readonly ?Connection $connection = null,
+    ) {
+    }
+
+    public function __invoke(Request $request): JsonResponse
+    {
         $providedToken = $request->query->get('token');
 
-        if ('' === $expectedToken || !\is_string($providedToken) || !hash_equals($expectedToken, $providedToken)) {
+        if ('' === $this->expectedToken || !\is_string($providedToken) || !hash_equals($this->expectedToken, $providedToken)) {
             return new JsonResponse(null, Response::HTTP_UNAUTHORIZED);
         }
 
@@ -34,9 +39,9 @@ final class InfosController
             'php' => PHP_VERSION,
             'symfony' => Kernel::VERSION,
             'node' => $this->getNodeVersion(),
-            'database' => $this->getDatabaseVersion($connection),
+            'database' => $this->getDatabaseVersion($this->connection),
             'libraries-php' => $this->getInstalledPhpLibraries(),
-            'libraries-node' => $this->getInstalledNodeLibraries($projectDir),
+            'libraries-node' => $this->getInstalledNodeLibraries($this->projectDir),
         ]);
     }
 

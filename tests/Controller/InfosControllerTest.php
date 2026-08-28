@@ -13,28 +13,28 @@ final class InfosControllerTest extends TestCase
 {
     public function testMissingTokenReturns401(): void
     {
-        $response = (new InfosController())(new Request(), 'expected-token', __DIR__);
+        $response = (new InfosController('expected-token', __DIR__))(new Request());
 
         self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
     public function testEmptyExpectedTokenAlwaysReturns401(): void
     {
-        $response = (new InfosController())(new Request(query: ['token' => '']), '', __DIR__);
+        $response = (new InfosController('', __DIR__))(new Request(query: ['token' => '']));
 
         self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
     public function testWrongTokenReturns401(): void
     {
-        $response = (new InfosController())(new Request(query: ['token' => 'wrong']), 'expected-token', __DIR__);
+        $response = (new InfosController('expected-token', __DIR__))(new Request(query: ['token' => 'wrong']));
 
         self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
     public function testValidTokenReturnsInfos(): void
     {
-        $response = (new InfosController())(new Request(query: ['token' => 'expected-token']), 'expected-token', __DIR__);
+        $response = (new InfosController('expected-token', __DIR__))(new Request(query: ['token' => 'expected-token']));
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertJson((string) $response->getContent());
@@ -52,7 +52,7 @@ final class InfosControllerTest extends TestCase
         file_put_contents($projectDir.'/node_modules/@scope/scoped-pkg/package.json', json_encode(['name' => '@scope/scoped-pkg', 'version' => '1.2.3']));
         file_put_contents($projectDir.'/node_modules/plain-pkg/package.json', json_encode(['name' => 'plain-pkg', 'version' => '4.5.6']));
 
-        $response = (new InfosController())(new Request(query: ['token' => 'expected-token']), 'expected-token', $projectDir);
+        $response = (new InfosController('expected-token', $projectDir))(new Request(query: ['token' => 'expected-token']));
 
         $content = json_decode((string) $response->getContent(), true);
 
