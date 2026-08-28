@@ -7,6 +7,11 @@ services:
   _defaults:
     autowire: true
     autoconfigure: true
+    bind:
+      # bind: plutôt que #[Autowire] sur le constructeur : cet attribut n'existe qu'à partir
+      # de Symfony 6.1, alors que le bundle supporte Symfony ^5.4.
+      string $expectedToken: '%env(SPYRIT_ESSENTIAL_TOKEN)%'
+      string $projectDir: '%kernel.project_dir%'
 
   Spyrit\EssentialBundle\Controller\InfosController:
     tags: ['controller.service_arguments']

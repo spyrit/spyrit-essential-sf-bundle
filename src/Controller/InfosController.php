@@ -6,7 +6,6 @@ namespace Spyrit\EssentialBundle\Controller;
 
 use Composer\InstalledVersions;
 use Doctrine\DBAL\Connection;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,9 +19,14 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/spyrit-essential', name: 'spyrit_essential_infos', methods: [Request::METHOD_GET])]
 final class InfosController
 {
+    /**
+     * $expectedToken et $projectDir sont liés via `bind:` dans config/services.yaml plutôt
+     * qu'avec l'attribut #[Autowire] : cette classe n'existe pas avant Symfony 6.1, alors que
+     * le bundle supporte Symfony ^5.4 — l'attribut était silencieusement ignoré sur 5.4.
+     */
     public function __construct(
-        #[Autowire(env: 'SPYRIT_ESSENTIAL_TOKEN')] private readonly string $expectedToken,
-        #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
+        private readonly string $expectedToken,
+        private readonly string $projectDir,
         private readonly ?Connection $connection = null,
     ) {
     }
