@@ -20,14 +20,18 @@ use Symfony\Component\Routing\Attribute\Route;
 final class InfosController
 {
     /**
-     * $expectedToken et $projectDir sont liés via `bind:` dans config/services.yaml plutôt
-     * qu'avec l'attribut #[Autowire] : cette classe n'existe pas avant Symfony 6.1, alors que
-     * le bundle supporte Symfony ^5.4 — l'attribut était silencieusement ignoré sur 5.4.
+     * $expectedToken, $projectDir et $connection sont liés via `bind:` dans
+     * config/services.yaml plutôt qu'avec l'attribut #[Autowire] (absent avant Symfony 6.1,
+     * alors que le bundle supporte ^5.4) ou un type-hint concret pour $connection : certaines
+     * apps consommatrices (ex. Propel sans doctrine/dbal) n'ont pas la classe Connection, et
+     * des listeners tiers (ex. FOSRestBundle) réfléchissent sur TOUS les types de paramètres
+     * de TOUS les contrôleurs, même nullables — un type-hint concret y ferait planter le
+     * chargement de la classe.
      */
     public function __construct(
         private readonly string $expectedToken,
         private readonly string $projectDir,
-        private readonly ?Connection $connection = null,
+        private readonly ?object $connection = null,
     ) {
     }
 
@@ -67,9 +71,9 @@ final class InfosController
         return trim($process->getOutput()) ?: null;
     }
 
-    private function getDatabaseVersion(?Connection $connection): ?string
+    private function getDatabaseVersion(?object $connection): ?string
     {
-        if (null === $connection) {
+        if (!$connection instanceof Connection) {
             return null;
         }
 

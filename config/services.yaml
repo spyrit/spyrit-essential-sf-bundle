@@ -12,6 +12,9 @@ services:
       # de Symfony 6.1, alors que le bundle supporte Symfony ^5.4.
       string $expectedToken: '%env(SPYRIT_ESSENTIAL_TOKEN)%'
       string $projectDir: '%kernel.project_dir%'
+      # @? : référence de service optionnelle, résout à null si doctrine/dbal n'est pas
+      # installé (ex. apps Propel) plutôt que de faire planter la compilation du conteneur.
+      $connection: '@?doctrine.dbal.default_connection'
 
   Spyrit\EssentialBundle\Controller\InfosController:
     tags: ['controller.service_arguments']
