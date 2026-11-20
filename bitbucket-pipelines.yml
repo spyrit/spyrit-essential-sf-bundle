@@ -18,14 +18,13 @@ pipelines:
     - parallel:
         - step:
             <<: *quality
-            name: "Tests - PHP 8.1 / Symfony 5.4"
-            image: supportspyrit/bitbucket_pipelines_spyrit:php81
+            name: "Tests - PHP 8.3 / Symfony 5.4"
+            image: supportspyrit/bitbucket_pipelines_spyrit:php83
             script:
               - export SYMFONY_REQUIRE=5.4.*
               - COMPOSER_ALLOW_SUPERUSER=1 composer require symfony/flex --no-update
               - COMPOSER_ALLOW_SUPERUSER=1 composer install -n --no-progress
-              - vendor/bin/simple-phpunit install
-              - vendor/bin/simple-phpunit
+              - vendor/bin/phpunit --colors=always
         - step:
             <<: *quality
             name: "Tests - PHP 8.3 / Symfony 6.4 (LTS)"

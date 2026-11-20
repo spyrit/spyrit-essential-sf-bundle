@@ -2,7 +2,7 @@
 
 Bundle Symfony transverse SPYRIT, mutualisant des utilitaires communs aux applications internes.
 
-Compatibilité : PHP >= 8.1, Symfony 5.4 (LTS) à la dernière LTS.
+Compatibilité : PHP >= 8.3, Symfony 5.4 (LTS) à la dernière LTS.
 
 ## Dev
 
