@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Spyrit\EssentialBundle\Tests\Controller;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Spyrit\EssentialBundle\Controller\InfosController;
 use Symfony\Component\HttpFoundation\Request;
@@ -60,5 +61,49 @@ final class InfosControllerTest extends TestCase
             ['@scope/scoped-pkg' => '1.2.3', 'plain-pkg' => '4.5.6'],
             $content['libraries-node'],
         );
+    }
+
+    /**
+     * @return iterable<string, array{string|null, array{name: string, version: string|null}|null}>
+     */
+    public static function provideServerSoftware(): iterable
+    {
+        yield 'nginx (fastcgi_params)' => ['nginx/1.27.3', ['name' => 'nginx', 'version' => '1.27.3']];
+        yield 'Apache ServerTokens Full' => ['Apache/2.4.62 (Debian)', ['name' => 'Apache', 'version' => '2.4.62']];
+        yield 'serveur inconnu sans version' => ['SomeServer', ['name' => 'SomeServer', 'version' => null]];
+        yield 'serveur intégré PHP' => ['PHP 8.3.0 Development Server', ['name' => 'PHP built-in server', 'version' => \PHP_VERSION]];
+        yield 'aucun serveur (CLI)' => [null, null];
+    }
+
+    /**
+     * @param array{name: string, version: string|null}|null $expected
+     */
+    #[DataProvider('provideServerSoftware')]
+    public function testWebServerIsDetectedFromServerSoftware(?string $serverSoftware, ?array $expected): void
+    {
+        $server = null !== $serverSoftware ? ['SERVER_SOFTWARE' => $serverSoftware] : [];
+        $request = new Request(query: ['token' => 'expected-token'], server: $server);
+
+        $response = (new InfosController('expected-token', __DIR__))($request);
+
+        $content = json_decode((string) $response->getContent(), true);
+
+        self::assertIsArray($content);
+        self::assertArrayHasKey('web-server', $content);
+        self::assertSame($expected, $content['web-server']);
+    }
+
+    public function testApacheWithoutVersionKeepsName(): void
+    {
+        $request = new Request(query: ['token' => 'expected-token'], server: ['SERVER_SOFTWARE' => 'Apache']);
+
+        $response = (new InfosController('expected-token', __DIR__))($request);
+
+        $content = json_decode((string) $response->getContent(), true);
+
+        self::assertIsArray($content);
+        self::assertIsArray($content['web-server']);
+        // La version dépend de la présence d'un binaire apache dans l'environnement de test.
+        self::assertSame('Apache', $content['web-server']['name']);
     }
 }

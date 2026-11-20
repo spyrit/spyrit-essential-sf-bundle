@@ -47,6 +47,7 @@ final class InfosController
             'php' => PHP_VERSION,
             'symfony' => Kernel::VERSION,
             'node' => $this->getNodeVersion(),
+            'web-server' => $this->getWebServer($request),
             'database' => $this->getDatabaseVersion($this->connection),
             'libraries-php' => $this->getInstalledPhpLibraries(),
             'libraries-node' => $this->getInstalledNodeLibraries($this->projectDir),
@@ -55,20 +56,109 @@ final class InfosController
 
     private function getNodeVersion(): ?string
     {
-        $binary = (new ExecutableFinder())->find('node');
+        $output = $this->runVersionCommand('node', ['--version']);
+
+        return null !== $output ? (strtok($output, "\n") ?: null) : null;
+    }
+
+    /**
+     * Détecte le serveur web qui sert la requête (Apache, nginx, FrankenPHP...).
+     *
+     * Ordre de détection :
+     *  1. FrankenPHP : SAPI "frankenphp", version lue via `frankenphp version` ;
+     *  2. Apache mod_php : apache_get_version() ;
+     *  3. $_SERVER['SERVER_SOFTWARE'], renseigné par nginx (fastcgi_params) ou Apache (mod_proxy_fcgi)
+     *     devant PHP-FPM — fonctionne même si le serveur web est dans un autre conteneur.
+     * Si la version est masquée (ex. Apache `ServerTokens Prod`), on tente le binaire local du serveur.
+     *
+     * @return array{name: string, version: string|null}|null
+     */
+    private function getWebServer(Request $request): ?array
+    {
+        $serverSoftware = $request->server->get('SERVER_SOFTWARE');
+        $serverSoftware = \is_string($serverSoftware) ? trim($serverSoftware) : '';
+
+        if ('frankenphp' === \PHP_SAPI || str_starts_with(strtolower($serverSoftware), 'frankenphp')) {
+            return ['name' => 'FrankenPHP', 'version' => $this->findBinaryVersion(['frankenphp'], ['version'], '#FrankenPHP\s+v?(\d\S*)#i')];
+        }
+
+        if ('apache2handler' === \PHP_SAPI && \function_exists('apache_get_version')) {
+            $serverSoftware = (string) apache_get_version();
+        }
+
+        if ('' === $serverSoftware) {
+            return null;
+        }
+
+        // Serveur de développement intégré de PHP : "PHP 8.3.0 Development Server".
+        if (str_contains($serverSoftware, 'Development Server')) {
+            return ['name' => 'PHP built-in server', 'version' => \PHP_VERSION];
+        }
+
+        // Format usuel "nom/version (commentaire)", ex. "nginx/1.27.3" ou "Apache/2.4.62 (Debian)".
+        if (!preg_match('#^([^/\s]+)(?:/(\S+))?#', $serverSoftware, $matches)) {
+            return null;
+        }
+
+        $name = $matches[1];
+        $version = $matches[2] ?? null;
+
+        if (null === $version) {
+            $version = match (strtolower($name)) {
+                'apache' => $this->findBinaryVersion(['apache2ctl', 'apachectl', 'httpd', 'apache2'], ['-v'], '#Apache/(\d\S*)#'),
+                'nginx' => $this->findBinaryVersion(['nginx'], ['-v'], '#nginx/(\d\S*)#'),
+                default => null,
+            };
+        }
+
+        return ['name' => $name, 'version' => $version];
+    }
+
+    /**
+     * @param list<string> $binaries
+     * @param list<string> $arguments
+     */
+    private function findBinaryVersion(array $binaries, array $arguments, string $pattern): ?string
+    {
+        foreach ($binaries as $binary) {
+            $output = $this->runVersionCommand($binary, $arguments);
+
+            if (null !== $output && preg_match($pattern, $output, $matches)) {
+                return $matches[1];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Exécute `<binaire> <arguments>` (sans shell, arguments fixes) et renvoie stdout + stderr
+     * (certains binaires comme `nginx -v` écrivent sur stderr), ou null si le binaire est introuvable
+     * ou en échec.
+     *
+     * @param list<string> $arguments
+     */
+    private function runVersionCommand(string $binaryName, array $arguments): ?string
+    {
+        $binary = (new ExecutableFinder())->find($binaryName);
 
         if (null === $binary) {
             return null;
         }
 
-        $process = new Process([$binary, '--version']);
-        $process->run();
+        try {
+            $process = new Process([$binary, ...$arguments]);
+            $process->setTimeout(5);
+            $process->run();
+        } catch (\Throwable) {
+            return null;
+        }
 
         if (!$process->isSuccessful()) {
             return null;
         }
 
-        return trim($process->getOutput()) ?: null;
+        return trim($process->getOutput()."\n".$process->getErrorOutput()) ?: null;
     }
 
     private function getDatabaseVersion(?object $connection): ?string

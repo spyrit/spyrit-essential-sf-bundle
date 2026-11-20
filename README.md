@@ -32,6 +32,14 @@ Expose en JSON :
 - `php` : version live du runtime PHP.
 - `symfony` : version de Symfony.
 - `node` : version live du binaire `node` s'il est accessible depuis le process qui sert la requête, sinon `null`.
+- `web-server` : serveur web qui sert la requête, sous la forme `{"name": "nginx", "version": "1.27.3"}`, sinon `null`
+  (ex. en CLI). Détection :
+  - **FrankenPHP** : SAPI `frankenphp`, version lue via `frankenphp version` ;
+  - **Apache mod_php** : `apache_get_version()` ;
+  - **nginx / Apache devant PHP-FPM** : `SERVER_SOFTWARE` transmis par le serveur web (fonctionne même si nginx est
+    dans un autre conteneur, `fastcgi_params` envoie `nginx/$nginx_version` quel que soit `server_tokens`).
+  Si la version est masquée (ex. Apache `ServerTokens Prod`), le bundle tente `apache2ctl -v` / `httpd -v` / `nginx -v`
+  localement ; si le binaire n'est pas accessible depuis le process PHP, `version` vaut `null`.
 - `database` : version live de la base connectée (MySQL/MariaDB/PostgreSQL, via Doctrine DBAL si présent), sinon `null`.
 - `libraries-php` : tous les packages Composer installés (via `Composer\InstalledVersions`).
 - `libraries-node` : tous les packages Node installés, lus depuis `node_modules/<pkg>/package.json` (pas d'exec npm/yarn/pnpm).
@@ -62,6 +70,6 @@ est vide/absent, si aucun token n'est fourni, ou si les deux ne correspondent pa
 GET /spyrit-essential?token=xxx
 ```
 
-⚠️ **Avertissement sécurité** : cette route expose des numéros de version exacts (PHP, Symfony, libs, BDD), utile pour
+⚠️ **Avertissement sécurité** : cette route expose des numéros de version exacts (PHP, Symfony, serveur web, libs, BDD), utile pour
 du diagnostic mais aussi pour un attaquant qui chercherait des CVE connues sur ces versions précises si le token venait
 à fuiter. À ne pas exposer publiquement sans restriction complémentaire (IP allowlist, WAF) en production.
