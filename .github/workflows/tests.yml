@@ -13,9 +13,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - php: '8.1'
-            symfony: '5.4.*'
           - php: '8.3'
+            symfony: '5.4.*'
+          - php: '8.4'
             symfony: '6.4.*'
           - php: '8.5'
             symfony: '7.4.*'
@@ -41,7 +41,6 @@ jobs:
         run: |
           composer require --dev --no-update \
             "symfony/framework-bundle:${{ matrix.symfony }}" \
-            "symfony/phpunit-bridge:${{ matrix.symfony }}" \
             "symfony/yaml:${{ matrix.symfony }}"
           composer update -n --no-progress -W
 
@@ -55,6 +54,4 @@ jobs:
         run: vendor/bin/phpstan analyse --no-progress
 
       - name: PHPUnit
-        run: |
-          vendor/bin/simple-phpunit install
-          vendor/bin/simple-phpunit
+        run: vendor/bin/phpunit
